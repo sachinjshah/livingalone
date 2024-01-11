@@ -7,3 +7,7 @@ JAMA Intern Med. 2022;182(1):26-32. doi:10.1001/jamainternmed.2021.6588
 
 Link to paper:
 https://jamanetwork.com/journals/jamainternalmedicine/fullarticle/2785885
+
+Please note:
+- this analysis used the SAS Margins Macro (https://support.sas.com/kb/63/038.html)
+- we used version 1.08 which was the most current version as of the time of the analysis, a more current version may be available now
