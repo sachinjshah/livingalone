@@ -1,0 +1,451 @@
+---
+title: "Identifable support WIP figures"
+date: "2019-04-19"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+  
+## Data setup   
+```{r setup, include=FALSE}
+
+## By defult, show code for all chunks in the knitted document,
+## as well as the output. To override for a particular chunk
+## use echo = FALSE in its options.
+knitr::opts_chunk$set(echo = TRUE) 
+
+## Set the default size of figures
+knitr::opts_chunk$set(fig.width=8, fig.height=5)  
+
+## Load the libraries we will be using
+library(gapminder)
+library(here)
+library(socviz)
+library(tidyverse)
+library(formattable)
+
+## Import data
+
+library(readxl)
+r <- read_excel("complied results.xlsx")
+library(dplyr)
+r$`Home Support` <- recode(r$`Home Support`, "Lives alone, can ID support" = "Can ID support")
+r$`Home Support` <- recode(r$`Home Support`, "Lives alone, cannot ID support" = "Cannot ID support")
+
+## figure settings
+sachin_theme <- theme_bw()+
+        theme(
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "grey75"),
+          panel.border = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          panel.grid.major.y = element_line(color = "grey", linetype = "dotted" ),
+          panel.grid.minor.y = element_blank(),
+          legend.position = "none", 
+          axis.title=element_text(size=10)
+          )
+
+sachin_theme_leg <- theme_bw()+
+        theme(
+          panel.background = element_blank(), 
+          axis.line = element_line(colour = "grey75"),
+          panel.border = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          panel.grid.major.y = element_line(color = "grey", linetype = "dotted" ),
+          panel.grid.minor.y = element_blank(),
+          legend.position = "top", 
+          legend.title = element_blank(),
+          axis.title=element_text(size=10)
+          )
+
+
+```
+
+
+
+## Figure 1: Conceptual diagram
+
+```{r concept}
+library("grid")
+
+
+# EXAMPLE 1 - NO EFFECT
+data_sx <- c(1,1.4,15,15.4)
+data_shock <- c("No shock", "No shock", "Shock", "Shock")
+data_level <- c("High support", "Low support", "High support", "Low support")
+
+data.concept <- data.frame("Scenario" = data_scenario, "Outcome" = data_sx, "Stressor" = data_shock, "Support" = data_level)
+
+data.concept$Support <- factor(data.concept$Support, levels = c("Low support", "High support"))
+
+
+fig.noeffect <- 
+    ggplot(data = data.concept, aes(y=Outcome, x=Stressor, group=Support)) +
+    geom_point(aes(color = Support), size = 3) +
+    geom_line(aes(color = Support), size = 1) +
+    scale_y_continuous(limits = c(0,16),
+                        breaks = c(1,15),
+                        labels = c("Low", "High")) +
+    ggtitle("No effect") + 
+  sachin_theme_leg
+
+# EXAMPLE 1 - MAIN EFFECT
+data_sx <- c(1,5,11,15)
+data_shock <- c("No shock", "No shock", "Shock", "Shock")
+data_level <- c("High support", "Low support", "High support", "Low support")
+
+data.concept <- data.frame("Scenario" = data_scenario, "Outcome" = data_sx, "Stressor" = data_shock, "Support" = data_level)
+
+data.concept$Support <- factor(data.concept$Support, levels = c("Low support", "High support"))
+
+fig.maineffect <-
+  ggplot(data = data.concept, aes(y=Outcome, x=Stressor, group=Support)) +
+    geom_point(aes(color = Support), size = 3) +
+    geom_line(aes(color = Support), size = 1) +
+    scale_y_continuous(limits = c(0,16),
+                        breaks = c(1,15),
+                        labels = c("Low", "High")) +
+    ggtitle("Main effect") + 
+  sachin_theme_leg
+
+# EXAMPLE 2 - BUFFERING EFFECT
+data_sx <- c(1,1,8,15)
+data_shock <- c("No shock", "No shock", "Shock", "Shock")
+data_level <- c("High support", "Low support", "High support", "Low support")
+
+data.concept <- data.frame("Scenario" = data_scenario, "Outcome" = data_sx, "Stressor" = data_shock, "Support" = data_level)
+
+data.concept$Support <- factor(data.concept$Support, levels = c("Low support", "High support"))
+
+fig.bufferingeffect <-
+  ggplot(data = data.concept, aes(y=Outcome, x=Stressor, group=Support)) +
+    geom_point(aes(color = Support), size = 3) +
+    geom_line(aes(color = Support), size = 1) +
+    scale_y_continuous(limits = c(0,16),
+                        breaks = c(1,15),
+                        labels = c("Low", "High")) +
+    ggtitle("Buffering effect") + 
+  sachin_theme_leg
+
+library(gridExtra)
+grid.arrange(fig.noeffect, fig.maineffect, fig.bufferingeffect, ncol = 3)
+
+```
+
+## Table 1: Patient characteristics - First 
+
+```{r t1}
+
+library(haven)
+t1 <- read_sas("C:/Users/sachi/Box Sync/HRS/processed data/analytic_long_2020_05_08_first.sas7bdat", 
+    NULL)
+t1$AGE <- as.numeric(t1$AGE)
+
+myVars <- c("AGE","RAFEMALE", "RARACEM", "RAHISPAN", "married", "HSGRAD", "INC_ABV_MED", "poorhealth",
+		        "PAIN", "BADVISION",  "BADHEARING", "HIGHBP", "DIABETES", "CANCER",  "LUNGD",  
+		        "HEARTD",  "STROKE", "ARTHRITIS", "DEPRESSION", "SMOKING", "BEDDIFF", "BATHDIFF",
+		        "DRESSDIFF", "EATDIFF",	"TOILTDIFF", "WALKDIFF", "COG", "PROXY")
+
+catVars <- c("RAFEMALE", "RARACEM", "RAHISPAN", "married", "HSGRAD", "INC_ABV_MED", "poorhealth",
+		        "PAIN", "BADVISION",  "BADHEARING", "HIGHBP", "DIABETES", "CANCER",  "LUNGD",  
+		        "HEARTD",  "STROKE", "ARTHRITIS", "DEPRESSION", "SMOKING", "BEDDIFF", "BATHDIFF",
+		        "DRESSDIFF", "EATDIFF",	"TOILTDIFF", "WALKDIFF", "COG", "PROXY")
+
+not_nl <- c("AGE")
+
+library(labelled)
+var_label(t1) <- list(AGE = "Age", RAFEMALE = "Female", RARACEM = "Race", RAHISPAN = "Hispanic ethnicity", 
+                     married = "Marital status", HSGRAD = "High school graduate",
+                     INC_ABV_MED = "Net worth less than median", poorhealth = "Fair or poor self reported health", 
+                     PAIN = "Significant pain", BADVISION = "Visual impairment", 
+                     BADHEARING = "Hearing impairment", HIGHBP = "Hypertension",
+                     DIABETES = "Diabetes", CANCER = "Cancer (excluding minor skin cancer)",
+                     LUNGD = "Lung disease", HEARTD = "Heart disease", STROKE = "Stroke", ARTHRITIS = "Arthritis",
+                     SMOKING = "Ever tobacco use", BEDDIFF = "Difficulty getting out of bed", WALKDIFF = "Difficulty walking",
+                     DRESSDIFF = "Difficulty dressing", BATHDIFF = "Difficulty bathing", EATDIFF = "Difficulty dating", 
+                     TOILTDIFF = "Difficulty toileting", COG = "Cognition", PROXY = "Proxy interview")
+library(tableone)
+tab2 <- CreateTableOne(vars = myVars, strata = "nosupport", data = t1, factorVars = catVars)
+tab2a <- print(tab2, nonnormal = not_nl, catDigits = 0, contDigits = 1, varLabels = TRUE, format = "fp", test = T, noSpace = TRUE, dropEqual = TRUE, printToggle = TRUE, quote = T)
+ # tab2b <- tab2a[,1:3]
+ # print(tab2b, quote = FALSE)
+
+
+
+
+```
+
+
+
+
+
+## Table 1: Patient characteristics - All
+
+```{r t1full}
+
+library(haven)
+library(tidyverse)
+t1.full <- read_sas("C:/Users/sachi/Box Sync/HRS/processed data/analytic_long_2020_05_08_no_miss.sas7bdat", 
+    NULL)
+
+t1.full$AGE <- as.numeric(t1.full$AGE)
+
+
+myVars <- c("AGE","RAFEMALE", "RARACEM", "RAHISPAN", "married", "HSGRAD", "INC_ABV_MED", "poorhealth", "PAIN",  "HIGHBP", "DIABETES", "CANCER",  "LUNGD", "HEARTD",  "STROKE", "ARTHRITIS", "DEPRESSION", "SMOKING", "ADLDIFF", "BEDDIFF", "BATHDIFF", "DRESSDIFF", "EATDIFF",	"TOILTDIFF", "WALKDIFF", "COG", "BADVISION",  "BADHEARING", "PROXY")
+
+catVars <- c("RAFEMALE", "RARACEM", "RAHISPAN", "married", "HSGRAD", "INC_ABV_MED", "poorhealth",
+"PAIN", "HIGHBP", "DIABETES", "CANCER",  "LUNGD", "HEARTD",  "STROKE", "ARTHRITIS", "DEPRESSION", "SMOKING", "ADLDIFF", "BEDDIFF", "BATHDIFF", "DRESSDIFF", "EATDIFF",	"TOILTDIFF", "WALKDIFF", "COG", "BADVISION", "BADHEARING", "PROXY")
+
+not_nl <- c("AGE")
+
+library(labelled)
+var_label(t1.full) <- list(AGE = "Age", RAFEMALE = "Female", RARACEM = "Race", RAHISPAN = "Hispanic ethnicity", married = "Marital status", HSGRAD = "High school graduate", INC_ABV_MED = "Net worth less than median", poorhealth = "Fair or poor self reported health", PAIN = "Significant pain", BADVISION = "Visual impairment", BADHEARING = "Hearing impairment", HIGHBP = "Hypertension",DIABETES = "Diabetes", CANCER = "Cancer (excluding minor skin cancer)", LUNGD = "Lung disease", HEARTD = "Heart disease", STROKE = "Stroke", ARTHRITIS = "Arthritis", DEPRESSION = "Depression", SMOKING = "Ever tobacco use", ADLDIFF = "Difficulty with any ADL", BEDDIFF = "Difficulty getting out of bed", WALKDIFF = "Difficulty walking", DRESSDIFF = "Difficulty dressing", BATHDIFF = "Difficulty bathing", EATDIFF = "Difficulty eating", TOILTDIFF = "Difficulty toileting", COG = "Cognition", PROXY = "Proxy interview")
+
+library(tableone)
+tab2 <- CreateTableOne(vars = myVars, strata = "nosupport", data = t1.full, factorVars = catVars)
+tab2a <- print(tab2, nonnormal = not_nl, catDigits = 0, contDigits = 0, varLabels = TRUE, format = "fp", test = T, noSpace = TRUE, dropEqual = TRUE, printToggle = TRUE, quote = T)
+ # tab2b <- tab2a[,1:3]
+ # print(tab2b, quote = FALSE)
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+## Figure 2: Unadjusted outcomes
+
+```{r unadj, echo = FALSE, fig.width= 6, fig.height=4}
+
+library(readr)
+u <- read_csv("C:/Users/sachi/Box Sync/HRS/results/Unadjusted margins support x outcomes.csv")
+u$outcome <- factor(u$outcome, levels = c("ADL", "NH", "Died"))
+
+library(dplyr)
+u.1 <- u %>% 
+          filter(model == "Logistic") %>%
+          mutate(Support = ifelse(nosupport == 1, "No support", "Support")) %>%
+          mutate(outcome=recode(outcome,
+                                  ADL = "ADL dependency",
+                                  NH = "Nursing home stay",
+                                  Died = "Deceased"))
+
+library(ggplot2)
+dodge <- position_dodge(width = 0.2)
+
+fig.mainoutcome_unadj <- ggplot(data = u.1, 
+        aes(x = outcome, y = `_mu`,  color = Support)) +
+        geom_point(size = 3, position = dodge) + 
+        geom_errorbar(
+            aes(ymin=Lower, ymax = Upper), 
+            width = 0.05,
+            size = 1,
+            position = dodge) +
+        scale_y_continuous(
+            name = "Likelihood", 
+            labels = scales::percent_format(accuracy = 1)
+            ,
+            limits = c(0.0, 0.14), 
+            breaks = c(seq(from=0.00, to =0.14, by =0.02))
+            )+
+        xlab("Outcome") +
+        sachin_theme_leg  
+fig.mainoutcome_unadj 
+         
+
+setwd("C:/Users/sachi/Box Sync/HRS/results/figures")
+fig.mainoutcome_unadj
+ggsave("F2 - support x outcomes unadjusted.png", width = 6, height = 4)
+
+```
+
+
+
+## F3: Adjusted outcomes
+```{r adj, echo = FALSE, fig.width= 6, fig.height=4}
+
+library(readr)
+v <- read_csv("C:/Users/sachi/Box Sync/HRS/results/Adjusted margins support x outcomes.csv")
+v$outcome <- factor(v$outcome, levels = c("ADL", "NH", "Died"))
+
+library(dplyr)
+v.1 <- v %>% 
+          filter(model == "Logistic") %>%
+          mutate(Support = ifelse(nosupport == 1, "No support", "Support")) %>%
+          mutate(outcome=recode(outcome,
+                                  ADL = "ADL dependency",
+                                  NH = "Nursing home stay",
+                                  Died = "Deceased"))
+
+library(ggplot2)
+dodge <- position_dodge(width = 0.2)
+
+fig.mainoutcome_adj <- ggplot(data = v.1, 
+        aes(x = outcome, y = `_mu`,  color = Support)) +
+        geom_point(size = 3, position = dodge) + 
+        geom_errorbar(
+            aes(ymin=Lower, ymax = Upper), 
+            width = 0.05,
+            size = 1,
+            position = dodge) +
+        scale_y_continuous(
+            name = "Adjusted likelihood", 
+            labels = scales::percent_format(accuracy = 1)
+            ,
+            limits = c(0.0, 0.14), 
+            breaks = c(seq(from=0.00, to =0.14, by =0.02))
+            )+
+        xlab("Outcome") +
+        sachin_theme_leg  
+
+fig.mainoutcome_adj
+
+setwd("C:/Users/sachi/Box Sync/HRS/results/figures")
+fig.mainoutcome_adj
+ggsave("F3 - support x outcomes adjusted.png", width = 6, height = 4)
+
+```
+
+
+
+
+##Figure 4: Adjusted analyses, stratified by health shock
+* Adjusted for age, gender, race, education, income, pain, visual impairment, hearing impairment, hypertention, cancer diagnosis, lung disease, heart diease, stroke, arthritis, cognitive impairment, ADL difficulty
+* stratified by health shock, defined as hosptial stay >= 2 days, new cancer diagnosis, new stroke, new heart attack
+
+```{r shock, echo=FALSE}
+
+library(readr)
+setwd("C:/Users/sachi/Box Sync/HRS/results/figures")
+
+w <- read_csv("C:/Users/sachi/Box Sync/HRS/results/Adjusted outcomes support x shock.csv")
+w$Outcome <- factor(w$Outcome, levels = c("ADL dependency", "Nursing home stay", "Deceased"))
+w$SHOCK <- factor(w$`Health shock`, levels =c("No health shock", "Health shock"))
+w$Support <- factor(w$Support, levels =c("No support", "Support"))
+w$label <- ifelse(is.na(w$`Average marginal effect (95% CI)`), NA, (paste("Difference (95% CI): \n", w$`Average marginal effect (95% CI)`)))
+dodge <- position_dodge(0.01)
+
+r.shock_d <- w %>% filter(Outcome == "Deceased") 
+r.shock_d$nudge <- c(NA, -0.025, NA, -0.04)
+
+fig.shock_deceased <- ggplot(data = r.shock_d, aes(y=`Predicted Value`, x=SHOCK, group=Support, label=label)) +
+                          geom_point(aes(color =Support), 
+                                     size = 3, 
+                                     position = dodge,
+                                     alpha = 1) +
+                          geom_line(aes(color = Support), 
+                                    size = 1, 
+                                    position = dodge, 
+                                    alpha = 1) +
+                          geom_errorbar(
+                              aes(ymin=Lower, ymax = Upper, color = Support), 
+                              width = 0.05,
+                              size = 1,
+                              position = dodge) +
+                          scale_y_continuous(
+                              name = "Likelihood of death", 
+                              labels = scales::percent_format(accuracy = 1),
+                              limits = c(0.0, 0.2), 
+                              breaks = c(seq(from=0.0, to =0.2, by =0.02))
+                              )+
+                          scale_x_discrete(
+                              name =""
+                          ) +
+                          sachin_theme_leg +
+                          geom_text(size = 3.0, nudge_y = r.shock_d$nudge)+
+                          ggtitle("C. Deceased")
+
+fig.shock_deceased
+ggsave("F4 Shock - Death RR.png", width = 6, height = 4)
+
+## ADL
+
+r.shock_adl <- w %>% filter(Outcome == "ADL dependency") 
+r.shock_adl$nudge <- c(NA, -0.025, NA, -0.045)
+fig.shock_adl <- ggplot(data = r.shock_adl, aes(y=`Predicted Value`, x=SHOCK, group=Support, label=label)) +
+                          geom_point(aes(color =Support), 
+                                     size = 3, 
+                                     position = dodge,
+                                     alpha = 1) +
+                          geom_line(aes(color = Support), 
+                                    size = 1, 
+                                    position = dodge, 
+                                    alpha = 1) +
+                          geom_errorbar(
+                              aes(ymin=Lower, ymax = Upper, color = Support), 
+                              width = 0.05,
+                              size = 1,
+                              position = dodge) +
+                          scale_y_continuous(
+                              name = "Likelihood of ADL dependency", 
+                              labels = scales::percent_format(accuracy = 1),
+                              limits = c(0.0, 0.2), 
+                              breaks = c(seq(from=0.0, to =0.2, by =0.02))
+                              )+
+                          scale_x_discrete(
+                              name =""
+                          ) +
+                          sachin_theme_leg +
+                          geom_text(size = 3, nudge_y = r.shock_adl$nudge)+
+                          ggtitle("A. ADL dependency")
+
+ fig.shock_adl
+ggsave("F4 Shock - ADL RR.png", width = 6, height = 4)
+ 
+ 
+ 
+## NH
+
+r.shock_nh <- w %>% filter(Outcome == "Nursing home stay") 
+r.shock_nh$nudge <- c(NA, -0.01, NA, -0.035)
+r.shock_nh$label <- ifelse(r.shock_nh$label == "Difference (95% CI): \n 0.5% (-0.1% to 1.1%)", "Difference (95% CI): 0.5% (-0.1% to 1.1%)", r.shock_nh$label )
+
+fig.shock_nh <- ggplot(data = r.shock_nh, aes(y=`Predicted Value`, x=SHOCK, group=Support, label=label)) +
+                          geom_point(aes(color =Support), 
+                                     size = 3, 
+                                     position = dodge,
+                                     alpha = 1) +
+                          geom_line(aes(color = Support), 
+                                    size = 1, 
+                                    position = dodge, 
+                                    alpha = 1) +
+                          geom_errorbar(
+                              aes(ymin=Lower, ymax = Upper, color = Support), 
+                              width = 0.05,
+                              size = 1,
+                              position = dodge) +
+                          scale_y_continuous(
+                              name = "Likelihood of nursing home stay", 
+                              labels = scales::percent_format(accuracy = 1),
+                              limits = c(0.0, 0.2), 
+                              breaks = c(seq(from=0.0, to =0.2, by =0.02))
+                              )+
+                          scale_x_discrete(
+                              name =""
+                          ) +
+                          sachin_theme_leg +
+                          geom_text(size = 3, nudge_y = r.shock_nh$nudge)+
+                          ggtitle("B. Nursing home stay")
+
+ fig.shock_nh
+
+
+
+
+
+fig.shock_nh
+ggsave("F4 Shock - NH RR.png", width = 6, height = 4)
+
+library(gridExtra)
+fig.all <- grid.arrange(fig.shock_adl, fig.shock_nh, fig.shock_deceased, ncol = 3)
+
+```
